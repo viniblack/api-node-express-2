@@ -1,62 +1,68 @@
+import mongoose from "mongoose";
 import autores from "../models/Autor.js";
 
 class AutorController {
-  static listarAutores = (req, res) => {
-    autores.find((err, autores) => {
-      res.status(200).json(autores);
-    });
+  static listarAutores = async (req, res) => {
+    try {
+      const autoresResultado = await autores.find();
+
+      res.status(200).json(autoresResultado);
+    } catch (err) {
+      res
+        .status(500)
+        .json({ message: `${err.message} - Erro interno no servidor` });
+    }
   };
 
-  static listarAutorPorId = (req, res) => {
-    const id = req.params.id;
+  static listarAutorPorId = async (req, res) => {
+    try {
+      const id = req.params.id;
+      const autorResultado = await autores.findById(id);
 
-    autores.findById(id, (err, autores) => {
-      if (err) {
-        res
-          .status(400)
-          .send({ message: `${err.message} - Id do Autor não localizado.` });
+      if (autorResultado !== null) {
+        res.status(200).json(autorResultado);
       } else {
-        res.status(200).send(autores);
+        res.status(404).json({ message: "Id do Autor não localizado." });
       }
-    });
+    } catch (err) {
+      if (err instanceof mongoose.Error.CastError) {
+        res.status(400).json({ message: "Dados fornecidos estão incorretos" });
+      } else {
+        res.status(500).json({ message: "Erro interno de servidor" });
+      }
+    }
   };
 
-  static cadastrarAutor = (req, res) => {
-    let autor = new autores(req.body);
-
-    autor.save((err) => {
-      if (err) {
-        res
-          .status(500)
-          .send({ message: `${err.message} - falha ao cadastrar Autor.` });
-      } else {
-        res.status(201).send(autor.toJSON());
-      }
-    });
+  static cadastrarAutor = async (req, res) => {
+    try {
+      let autor = new autores(req.body);
+      await autor.save();
+      res.status(201).json(autor.toJSON());
+    } catch (err) {
+      res
+        .status(500)
+        .json({ message: `Falha ao cadastrar Autor - ${err.message}` });
+    }
   };
 
-  static atualizarAutor = (req, res) => {
-    const id = req.params.id;
-
-    autores.findByIdAndUpdate(id, { $set: req.body }, (err) => {
-      if (!err) {
-        res.status(200).send({ message: "Autor atualizado com sucesso" });
-      } else {
-        res.status(500).send({ message: err.message });
-      }
-    });
+  static atualizarAutor = async (req, res) => {
+    try {
+      const id = req.params.id;
+      await autores.findByIdAndUpdate(id, { $set: req.body });
+      res.status(200).json({ message: "Autor atualizado com sucesso" });
+    } catch (err) {
+      res.status(500).json({ message: `Erro no servidor ${err.message}` });
+    }
   };
 
-  static excluirAutor = (req, res) => {
-    const id = req.params.id;
-
-    autores.findByIdAndDelete(id, (err) => {
-      if (!err) {
-        res.status(200).send({ message: "Autor removido com sucesso" });
-      } else {
-        res.status(500).send({ message: err.message });
-      }
-    });
+  static excluirAutor = async (req, res) => {
+    try {
+      const id = req.params.id;
+      await autores.findByIdAndDelete(id);
+      res.status(200).json({ message: "Autor removido com sucesso" });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
   };
 }
 
